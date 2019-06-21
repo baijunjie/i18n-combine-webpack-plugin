@@ -1,0 +1,22 @@
+{
+  "name": "i18n-combine-webpack-plugin",
+  "version": "0.1.0",
+  "description": "i18n json files combine",
+  "author": "baijunjie",
+  "license": "MIT",
+  "main": "index.js",
+  "dependencies": {
+    "chokidar": "^3.0.1",
+    "fs-extra": "^8.0.1",
+    "globby": "^9.2.0"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/baijunjie/i18n-combine-webpack-plugin.git"
+  },
+  "bugs": {
+    "url": "https://github.com/baijunjie/i18n-combine-webpack-plugin/issues"
+  },
+  "homepage": "https://github.com/baijunjie/i18n-combine-webpack-plugin#readme",
+  "files": []
+}
