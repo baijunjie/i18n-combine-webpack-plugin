@@ -1,6 +1,6 @@
 {
   "name": "i18n-combine-webpack-plugin",
-  "version": "0.2.2",
+  "version": "0.3.0",
   "description": "i18n json files combine",
   "author": "baijunjie",
   "license": "MIT",
@@ -19,5 +19,7 @@
     "url": "https://github.com/baijunjie/i18n-combine-webpack-plugin/issues"
   },
   "homepage": "https://github.com/baijunjie/i18n-combine-webpack-plugin#readme",
-  "files": []
+  "files": [
+    "utils.js"
+  ]
 }

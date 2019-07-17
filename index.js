@@ -3,6 +3,7 @@ const fs = require('fs-extra')
 const globby = require('globby')
 const chokidar = require('chokidar')
 const _ = require('lodash')
+const { objSort, filterDeep } = require('./utils')
 
 const defaultOptions = {
   base: '',
@@ -10,6 +11,7 @@ const defaultOptions = {
   dist: '',
   indentSize: 2,
   autoMerge: {
+    target: '',
     files: [],
     suffix: '__<<<',
     safeMode: false
@@ -35,34 +37,53 @@ module.exports = class {
   }
 
   merge() {
-    return globby(this.options.src).then(files => {
+    const {
+      base,
+      src,
+      dist,
+      indentSize,
+      autoMerge
+    } = this.options
 
-      const mergeFileMap = {}
-      const mergeFiles = this.options.autoMerge.files
-      if (mergeFiles && mergeFiles.length) {
-        for (const filename of this.options.autoMerge.files) {
-          const filePath = path.resolve(this.options.dist, filename)
+    const {
+      target: mergeTarget,
+      files: mergeFiles,
+      suffix
+    } = autoMerge
+
+    return globby(src).then(files => {
+
+      const mergeJsonMap = {}
+      if (mergeTarget && mergeFiles && mergeFiles.length) {
+        for (const filename of mergeFiles) {
+          const filePath = path.resolve(dist, filename)
 
           try {
             const content = fs.readFileSync(filePath, 'utf-8')
             try {
-              mergeFileMap[filename] = JSON.parse(content)
+              let json = JSON.parse(content)
+              if (suffix) {
+                json = filterDeep(json, (value, key) => {
+                  return !key.endsWith(suffix)
+                })
+              }
+              mergeJsonMap[filename] = json
             } catch (err) {
               console.error('Json format error: ' + filePath)
             }
           } catch (err) {
-            mergeFileMap[filename] = {}
+            mergeJsonMap[filename] = {}
           }
         }
       }
 
-      const i18nFileMap = {}
+      const i18nJsonMap = {}
       for (const filePath of files) {
-        const relative = path.relative(this.options.base, filePath)
+        const relative = path.relative(base, filePath)
         const relativeParts = relative.split(/[\\,/]/)
         const filename = relativeParts.pop()
         const relativePath = relativeParts.join('.')
-        const i18n = i18nFileMap[filename] = i18nFileMap[filename] || {}
+        const i18n = i18nJsonMap[filename] = i18nJsonMap[filename] || {}
 
         const content = fs.readFileSync(filePath, 'utf-8')
         if (content) {
@@ -78,18 +99,23 @@ module.exports = class {
         }
       }
 
-      for (let [ filename, json ] of Object.entries(i18nFileMap)) {
-        json = objSort(json)
+      for (let [ filename, json ] of Object.entries(i18nJsonMap)) {
+        if (mergeJsonMap[filename]) {
+          mergeJsonMap[filename] = _.merge(mergeJsonMap[filename], json)
+        } else {
+          json = objSort(json)
+          const filePath = path.resolve(dist, filename)
+          fs.outputFileSync(filePath, JSON.stringify(json, null, indentSize))
+        }
+      }
 
-        const filePath = path.resolve(this.options.dist, filename)
-        fs.outputFileSync(filePath, JSON.stringify(json, null, this.options.indentSize))
-
-        for (const [ filename, mergeFile ] of Object.entries(mergeFileMap)) {
-          if (!mergeFile) continue
-          const mergeFilePath = path.resolve(this.options.dist, filename)
-
-          const newJson = objSort(this.mergeJson(json, mergeFile))
-          fs.outputFileSync(mergeFilePath, JSON.stringify(newJson, null, this.options.indentSize))
+      if (mergeTarget) {
+        const mergeTargetJson = i18nJsonMap[mergeTarget]
+        for (const [ filename, mergeJson ] of Object.entries(mergeJsonMap)) {
+          if (!mergeJson) continue
+          const json = objSort(this.mergeJson(mergeTargetJson, mergeJson))
+          const filePath = path.resolve(dist, filename)
+          fs.outputFileSync(filePath, JSON.stringify(json, null, indentSize))
         }
       }
     })
@@ -116,13 +142,4 @@ module.exports = class {
     if (safeMode) _.defaults(obj, src)
     return obj
   }
-}
-
-function objSort(obj) {
-  let arr = _.toPairs(obj)
-  arr = _.orderBy(arr, [0]).map(arr => {
-    if (_.isObject(arr[1])) return [ arr[0], objSort(arr[1]) ]
-    else return arr
-  })
-  return _.fromPairs(arr)
 }
