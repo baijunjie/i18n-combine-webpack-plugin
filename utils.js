@@ -1,14 +1,14 @@
 const _ = require('lodash')
 
 /**
- * 为对象 key 的排序
- * @param obj
+ * 为对象的 key 排序，返回一个新对象
+ * @param src
  * @returns {Object}
  */
-module.exports.objSort = function (obj) {
-  let arr = _.toPairs(obj)
+module.exports.sortKey = function (src) {
+  let arr = _.toPairs(src)
   arr = _.orderBy(arr, [0]).map(arr => {
-    if (_.isObject(arr[1])) return [ arr[0], module.exports.objSort(arr[1]) ]
+    if (_.isObject(arr[1])) return [ arr[0], module.exports.sortKey(arr[1]) ]
     else return arr
   })
   return _.fromPairs(arr)

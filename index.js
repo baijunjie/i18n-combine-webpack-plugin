@@ -3,7 +3,7 @@ const fs = require('fs-extra')
 const globby = require('globby')
 const chokidar = require('chokidar')
 const _ = require('lodash')
-const { objSort, filterDeep } = require('./utils')
+const { sortKey, filterDeep } = require('./utils')
 
 const defaultOptions = {
   base: '',
@@ -103,7 +103,7 @@ module.exports = class {
         if (mergeJsonMap[filename]) {
           mergeJsonMap[filename] = _.merge(mergeJsonMap[filename], json)
         } else {
-          json = objSort(json)
+          json = sortKey(json)
           const filePath = path.resolve(dist, filename)
           fs.outputFileSync(filePath, JSON.stringify(json, null, indentSize))
         }
@@ -113,7 +113,7 @@ module.exports = class {
         const mergeTargetJson = i18nJsonMap[mergeTarget]
         for (const [ filename, mergeJson ] of Object.entries(mergeJsonMap)) {
           if (!mergeJson) continue
-          const json = objSort(this.mergeJson(mergeTargetJson, mergeJson))
+          const json = sortKey(this.mergeJson(mergeTargetJson, mergeJson))
           const filePath = path.resolve(dist, filename)
           fs.outputFileSync(filePath, JSON.stringify(json, null, indentSize))
         }
