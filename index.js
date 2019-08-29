@@ -41,7 +41,6 @@ module.exports = class {
       base,
       src,
       dist,
-      indentSize,
       autoMerge
     } = this.options
 
@@ -53,6 +52,7 @@ module.exports = class {
 
     return globby(src).then(files => {
 
+      // 首先读取需要自动合并的语言文件
       const mergeJsonMap = {}
       if (mergeTarget && mergeFiles && mergeFiles.length) {
         for (const filename of mergeFiles) {
@@ -62,6 +62,7 @@ module.exports = class {
             const content = fs.readFileSync(filePath, 'utf-8')
             try {
               let json = JSON.parse(content)
+              // 带后缀的 key 表示未翻译内容，因此不需要保留
               if (suffix) {
                 json = filterDeep(json, (value, key) => {
                   return !key.endsWith(suffix)
@@ -77,6 +78,7 @@ module.exports = class {
         }
       }
 
+      // 合并源目录中所有语言文件，生成新的 JsonMap
       const i18nJsonMap = {}
       for (const filePath of files) {
         const relative = path.relative(base, filePath)
@@ -99,23 +101,25 @@ module.exports = class {
         }
       }
 
-      for (let [ filename, json ] of Object.entries(i18nJsonMap)) {
+      // 将新的 JsonMap 与需要自动合并的语言文件进行合并
+      for (const [ filename, json ] of Object.entries(i18nJsonMap)) {
         if (mergeJsonMap[filename]) {
+          // 如果有自动合并的语言文件，这里只进行合并，暂不输出文件
           mergeJsonMap[filename] = _.merge(mergeJsonMap[filename], json)
         } else {
-          json = sortKey(json)
-          const filePath = path.resolve(dist, filename)
-          fs.outputFileSync(filePath, JSON.stringify(json, null, indentSize))
+          // 如果没有自动合并的语言文件，则直接输出文件
+          this.outputFile(filename, sortKey(json))
         }
       }
 
+      // 当有合并目标时，才对需要自动合并的语言文件进行合并
       if (mergeTarget) {
         const mergeTargetJson = i18nJsonMap[mergeTarget]
-        for (const [ filename, mergeJson ] of Object.entries(mergeJsonMap)) {
-          if (!mergeJson) continue
-          const json = sortKey(this.mergeJson(mergeTargetJson, mergeJson))
-          const filePath = path.resolve(dist, filename)
-          fs.outputFileSync(filePath, JSON.stringify(json, null, indentSize))
+        if (mergeTargetJson) {
+          for (const [ filename, mergeJson ] of Object.entries(mergeJsonMap)) {
+            if (!mergeJson) continue
+            this.outputFile(filename, sortKey(this.mergeJson(mergeTargetJson, mergeJson)))
+          }
         }
       }
     })
@@ -123,6 +127,7 @@ module.exports = class {
 
   mergeJson(tar, src) {
     const { suffix, safeMode } = this.options.autoMerge
+
     const obj = {}
     for (const [ key, value ] of Object.entries(tar)) {
       const srcValue = src[key]
@@ -141,5 +146,11 @@ module.exports = class {
 
     if (safeMode) _.defaults(obj, src)
     return obj
+  }
+
+  outputFile(filename, json) {
+    const { dist, indentSize } = this.options
+    const filePath = path.resolve(dist, filename)
+    fs.outputFileSync(filePath, JSON.stringify(json, null, indentSize))
   }
 }
