@@ -32,6 +32,6 @@ module.exports.filterDeep = function (src, callback, parentKey = '') {
     if (value instanceof Object) value = filterDeep(value, callback, path)
     newSrc[key] = value
   }
-  if (newSrc instanceof Array) newSrc.filter(value => value !== undefined)
-  return newSrc
+  if (newSrc instanceof Array) return newSrc.filter(value => value !== undefined)
+  else return newSrc
 }
