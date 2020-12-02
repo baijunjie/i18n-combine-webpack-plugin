@@ -151,6 +151,9 @@ module.exports = class {
   outputFile(filename, json) {
     const { dist, indentSize } = this.options
     const filePath = path.resolve(dist, filename)
-    fs.outputFileSync(filePath, JSON.stringify(json, null, indentSize))
+    fs.outputFileSync(
+      filePath,
+      JSON.stringify(json, null, indentSize) + '\n'
+    )
   }
 }
