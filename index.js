@@ -9,31 +9,43 @@ const defaultOptions = {
   base: '',
   src: '',
   dist: '',
+  watch: '',
   indentSize: 2,
   autoMerge: {
     target: '',
     files: [],
     suffix: '__<<<',
     safeMode: false
-  }
+  },
+  callback: null
 }
 
 module.exports = class {
   constructor(options) {
     this.options = _.defaultsDeep(options, defaultOptions)
+
+    if (!this.options.src || !this.options.dist) return console.error('"src" and "dist" are required.')
+
     this.options.base = this.options.base || this.options.src.replace(/\/\*.*$/, '')
+    this.options.watch = this.options.watch || this.options.src
   }
 
   apply(compiler) {
-    if (!this.options.src || !this.options.dist) return console.error('"src" and "dist" are required.')
-
-    this.merge()
-
     if (compiler.options.mode === 'development') {
-      chokidar.watch(this.options.src).on('change', () => {
-        this.merge()
+      chokidar.watch(this.options.watch).on('change', () => {
+        this.merge().then(() => {
+          if (typeof this.options.callback === 'function') {
+            this.options.callback()
+          }
+        })
       })
     }
+
+    return this.merge().then(() => {
+      if (typeof this.options.callback === 'function') {
+        this.options.callback()
+      }
+    })
   }
 
   merge() {
