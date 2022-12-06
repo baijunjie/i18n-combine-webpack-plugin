@@ -32,8 +32,8 @@ module.exports = class {
 
   apply(compiler) {
     if (compiler.options.mode === 'development') {
-      chokidar.watch(this.options.watch).on('change', () => {
-        this.merge().then(() => {
+      chokidar.watch(this.options.watch).on('change', (changeFile) => {
+        (changeFile.endsWith('.json') ? this.merge() : Promise.resolve()).then(() => {
           if (typeof this.options.callback === 'function') {
             this.options.callback()
           }
